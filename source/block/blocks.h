@@ -26,6 +26,7 @@
 #include "../graphics/texture_atlas.h"
 #include "../item/items.h"
 #include "../platform/displaylist.h"
+#include "../util.h"
 #include "../world.h"
 #include "aabb.h"
 #include "blocks_data.h"
@@ -37,11 +38,16 @@ struct block {
 	uint8_t (*getTextureIndex)(struct block_info*, enum side);
 	struct face_occlusion* (*getSideMask)(struct block_info*, enum side,
 										  struct block_info*);
-	bool (*getBoundingBox)(struct block_info*, bool, struct AABB*);
+	size_t (*getBoundingBox)(struct block_info*, bool, struct AABB*);
 	size_t (*renderBlock)(struct displaylist*, struct block_info*, enum side,
 						  struct block_info*, uint8_t*, bool);
 	size_t (*renderBlockAlways)(struct displaylist*, struct block_info*,
 								enum side, struct block_info*, uint8_t*, bool);
+	size_t (*getDroppedItem)(struct block_info*, struct item_data*,
+							 struct random_gen*);
+	void (*onRandomTick)(struct server_local*, struct block_info*);
+	void (*onRightClick)(struct server_local*, struct item_data*,
+						 struct block_info*, struct block_info*, enum side);
 	bool transparent;
 	uint8_t luminance : 4;
 	uint8_t opacity : 4;
@@ -157,8 +163,11 @@ void blocks_init(void);
 enum side blocks_side_opposite(enum side s);
 void blocks_side_offset(enum side s, int* x, int* y, int* z);
 const char* block_side_name(enum side s);
+
 bool block_place_default(struct server_local* s, struct item_data* it,
 						 struct block_info* where, struct block_info* on,
 						 enum side on_side);
+size_t block_drop_default(struct block_info* this, struct item_data* it,
+						  struct random_gen* g);
 
 #endif

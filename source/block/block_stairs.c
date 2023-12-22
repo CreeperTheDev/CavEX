@@ -28,10 +28,43 @@ static enum block_material getMaterial2(struct block_info* this) {
 	return MATERIAL_STONE;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 1.0F, 1.0F, 1.0F);
-	return true;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(entity) {
+		if(x) {
+			aabb_setsize(x + 0, 1.0F, 0.5F, 1.0F);
+
+			enum side facing
+				= (enum side[4]) {SIDE_RIGHT, SIDE_LEFT, SIDE_BACK,
+								  SIDE_FRONT}[this->block->metadata & 3];
+
+			switch(facing) {
+				default:
+				case SIDE_FRONT:
+					aabb_setsize(x + 1, 1.0F, 0.5F, 0.5F);
+					aabb_translate(x + 1, 0, 0.5F, -0.25F);
+					break;
+				case SIDE_BACK:
+					aabb_setsize(x + 1, 1.0F, 0.5F, 0.5F);
+					aabb_translate(x + 1, 0, 0.5F, 0.25F);
+					break;
+				case SIDE_RIGHT:
+					aabb_setsize(x + 1, 0.5F, 0.5F, 1.0F);
+					aabb_translate(x + 1, 0.25F, 0.5F, 0);
+					break;
+				case SIDE_LEFT:
+					aabb_setsize(x + 1, 0.5F, 0.5F, 1.0F);
+					aabb_translate(x + 1, -0.25F, 0.5F, 0);
+					break;
+			}
+		}
+
+		return 2;
+	} else {
+		if(x)
+			aabb_setsize(x, 1.0F, 1.0F, 1.0F);
+		return 1;
+	}
 }
 
 static struct face_occlusion side_mask = {
@@ -119,14 +152,44 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 		metadata = (dz >= 0) ? 3 : 2;
 	}
 
-	server_world_set_block(&s->world, where->x, where->y, where->z,
-						   (struct block_data) {
-							   .type = it->id,
-							   .metadata = metadata,
-							   .sky_light = 0,
-							   .torch_light = 0,
-						   });
+	struct block_data blk = (struct block_data) {
+		.type = it->id,
+		.metadata = metadata,
+		.sky_light = 0,
+		.torch_light = 0,
+	};
+
+	struct block_info blk_info = *where;
+	blk_info.block = &blk;
+
+	if(entity_local_player_block_collide(
+		   (vec3) {s->player.x, s->player.y, s->player.z}, &blk_info))
+		return false;
+
+	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
 	return true;
+}
+
+static size_t drop_wood(struct block_info* this, struct item_data* it,
+						struct random_gen* g) {
+	if(it) {
+		it->id = BLOCK_PLANKS;
+		it->durability = 0;
+		it->count = 1;
+	}
+
+	return 1;
+}
+
+static size_t drop_cobblestone(struct block_info* this, struct item_data* it,
+							   struct random_gen* g) {
+	if(it) {
+		it->id = BLOCK_COBBLESTONE;
+		it->durability = 0;
+		it->count = 1;
+	}
+
+	return 1;
 }
 
 struct block block_wooden_stairs = {
@@ -135,6 +198,9 @@ struct block block_wooden_stairs = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial1,
 	.getTextureIndex = getTextureIndex1,
+	.getDroppedItem = drop_wood,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_stairs,
 	.renderBlockAlways = render_block_stairs_always,
@@ -168,6 +234,9 @@ struct block block_stone_stairs = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial2,
 	.getTextureIndex = getTextureIndex2,
+	.getDroppedItem = drop_cobblestone,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_stairs,
 	.renderBlockAlways = render_block_stairs_always,

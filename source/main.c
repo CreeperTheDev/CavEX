@@ -34,6 +34,7 @@
 #include "game/gui/screen.h"
 #include "graphics/gfx_util.h"
 #include "graphics/gui_util.h"
+#include "item/recipe.h"
 #include "network/client_interface.h"
 #include "network/server_interface.h"
 #include "network/server_local.h"
@@ -59,6 +60,8 @@ int main(void) {
 	gstate.digging.cooldown = time_get();
 	gstate.digging.active = false;
 
+	rand_gen_seed(&gstate.rand_src);
+
 #ifdef PLATFORM_WII
 	fatInitDefault();
 #endif
@@ -68,6 +71,7 @@ int main(void) {
 	input_init();
 	blocks_init();
 	items_init();
+	recipe_init();
 	gfx_setup();
 
 	screen_set(&screen_select_world);
@@ -121,8 +125,17 @@ int main(void) {
 
 		bool render_world
 			= gstate.current_screen->render_world && gstate.world_loaded;
+		bool in_water = false;
 
-		camera_update(&gstate.camera);
+		if(render_world) {
+			struct block_data blk = world_get_block(
+				&gstate.world, floorf(gstate.camera.x),
+				floorf(gstate.camera.y + 0.1F), floorf(gstate.camera.z));
+			in_water
+				= blk.type == BLOCK_WATER_FLOW || blk.type == BLOCK_WATER_STILL;
+		}
+
+		camera_update(&gstate.camera, in_water);
 
 		if(render_world) {
 			world_pre_render(&gstate.world, &gstate.camera, gstate.camera.view);
@@ -205,6 +218,15 @@ int main(void) {
 		}
 
 		gfx_mode_gui();
+
+		if(in_water) {
+			gfx_bind_texture(&texture_water);
+			gutil_texquad_col(0, 0, -gstate.camera.rx / GLM_PI * 256,
+							  gstate.camera.ry / GLM_PI * 256, 512,
+							  512 * (float)gfx_height() / (float)gfx_width(),
+							  gfx_width(), gfx_height(), 0xFF, 0xFF, 0xFF,
+							  0x80);
+		}
 
 		if(gstate.current_screen->render2D)
 			gstate.current_screen->render2D(gstate.current_screen, gfx_width(),

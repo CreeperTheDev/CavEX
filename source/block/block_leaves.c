@@ -17,16 +17,18 @@
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "../network/server_local.h"
 #include "blocks.h"
 
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_ORGANIC;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 1.0F, 1.0F, 1.0F);
-	return true;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 1.0F, 1.0F, 1.0F);
+	return 1;
 }
 
 struct face_occlusion sides_mask = {
@@ -45,10 +47,46 @@ getSideMask(struct block_info* this, enum side side, struct block_info* it) {
 
 static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 	switch(this->block->metadata & 0x3) {
+		default:
+		case 0: return tex_atlas_lookup(TEXAT_LEAVES_OAK);
 		case 1: return tex_atlas_lookup(TEXAT_LEAVES_SPRUCE);
 		case 2: return tex_atlas_lookup(TEXAT_LEAVES_BIRCH);
-		default: return tex_atlas_lookup(TEXAT_LEAVES_OAK);
 	}
+}
+
+static size_t getDroppedItem(struct block_info* this, struct item_data* it,
+							 struct random_gen* g) {
+	bool drop_sapling = (rand_gen(g) % 16) == 0;
+
+	if(it && drop_sapling) {
+		it->id = BLOCK_SAPLING;
+		it->durability = this->block->metadata & 0x3;
+		it->count = 1;
+	}
+
+	return drop_sapling ? 1 : 0;
+}
+
+static void onRandomTick(struct server_local* s, struct block_info* this) {
+	for(int y = -4; y <= 4; y++) {
+		for(int x = -4; x <= 4; x++) {
+			for(int z = -4; z <= 4; z++) {
+				struct block_data log;
+				if((x != 0 || y != 0 || z != 0)
+				   && server_world_get_block(&s->world, this->x + x,
+											 this->y + y, this->z + z, &log)
+				   && log.type == BLOCK_LOG)
+					return;
+			}
+		}
+	}
+
+	server_world_set_block(&s->world, this->x, this->y, this->z,
+						   (struct block_data) {
+							   .type = BLOCK_AIR,
+							   .metadata = 0,
+						   });
+	server_local_spawn_block_drops(s, this);
 }
 
 struct block block_leaves = {
@@ -57,6 +95,9 @@ struct block block_leaves = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = getDroppedItem,
+	.onRandomTick = onRandomTick,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,

@@ -24,16 +24,18 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_WOOL;
 }
 
-static bool getBoundingBox1(struct block_info* this, bool entity,
-							struct AABB* x) {
-	aabb_setsize(x, 1.0F, 0.125F * (this->block->metadata + 1), 1.0F);
-	return true;
+static size_t getBoundingBox1(struct block_info* this, bool entity,
+							  struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 1.0F, 0.125F * (this->block->metadata + 1), 1.0F);
+	return 1;
 }
 
-static bool getBoundingBox2(struct block_info* this, bool entity,
-							struct AABB* x) {
-	aabb_setsize(x, 1.0F, 1.0F, 1.0F);
-	return true;
+static size_t getBoundingBox2(struct block_info* this, bool entity,
+							  struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 1.0F, 1.0F, 1.0F);
+	return 1;
 }
 
 static struct face_occlusion*
@@ -68,12 +70,37 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 	return block_place_default(s, it, where, on, on_side);
 }
 
+static size_t drop_snow(struct block_info* this, struct item_data* it,
+						struct random_gen* g) {
+	if(it) {
+		it->id = ITEM_SNOW_BALL;
+		it->durability = 0;
+		it->count = 1;
+	}
+
+	return 1;
+}
+
+static size_t drop_snow_block(struct block_info* this, struct item_data* it,
+							  struct random_gen* g) {
+	if(it) {
+		it->id = ITEM_SNOW_BALL;
+		it->durability = 0;
+		it->count = 4;
+	}
+
+	return 1;
+}
+
 struct block block_snow = {
 	.name = "Snow",
 	.getSideMask = getSideMask1,
 	.getBoundingBox = getBoundingBox1,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = drop_snow,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_layer,
 	.renderBlockAlways = NULL,
@@ -105,6 +132,9 @@ struct block block_snow_block = {
 	.getBoundingBox = getBoundingBox2,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = drop_snow_block,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,

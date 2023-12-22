@@ -91,18 +91,6 @@ void screen_ingame_render3D(struct screen* s, mat4 view) {
 	float sqrtLerpPI = sqrtf(dig_lerp) * GLM_PI;
 	float sinHalfCircleWeird = sinf(glm_pow2(dig_lerp) * GLM_PI);
 
-	mat4 model;
-	glm_translate_make(model,
-					   (vec3) {0.56F - sinf(sqrtLerpPI) * 0.4F,
-							   -0.52F + sinf(sqrtLerpPI * 2.0F) * 0.2F
-								   - 0.6F * place_lerp
-								   - 0.4F * sinf(swing_lerp * GLM_PI),
-							   -0.72F - sinHalfCircle * 0.2F});
-	glm_rotate_y(model, glm_rad(45.0F), model);
-	glm_rotate_y(model, glm_rad(-sinHalfCircleWeird * 20.0F), model);
-	glm_rotate_z(model, glm_rad(-sinf(sqrtLerpPI) * 20.0F), model);
-	glm_rotate_x(model, glm_rad(-sinf(sqrtLerpPI) * 80.0F), model);
-
 	struct block_data in_block
 		= world_get_block(&gstate.world, floorf(gstate.camera.x),
 						  floorf(gstate.camera.y), floorf(gstate.camera.z));
@@ -110,27 +98,56 @@ void screen_ingame_render3D(struct screen* s, mat4 view) {
 
 	gfx_depth_range(0.0F, 0.1F);
 
+	mat4 model;
 	struct item_data item;
+
 	if(inventory_get_slot(windowc_get_latest(gstate.windows[WINDOWC_INVENTORY]),
 						  slot + INVENTORY_SLOT_HOTBAR, &item)
 	   && item_get(&item)) {
+		glm_translate_make(model,
+						   (vec3) {0.56F - sinf(sqrtLerpPI) * 0.4F,
+								   -0.52F + sinf(sqrtLerpPI * 2.0F) * 0.2F
+									   - 0.6F * place_lerp
+									   - 0.4F * sinf(swing_lerp * GLM_PI),
+								   -0.72F - sinHalfCircle * 0.2F});
+		glm_rotate_y(model, glm_rad(45.0F), model);
+		glm_rotate_y(model, glm_rad(-sinHalfCircleWeird * 20.0F), model);
+		glm_rotate_z(model, glm_rad(-sinf(sqrtLerpPI) * 20.0F), model);
+		glm_rotate_x(model, glm_rad(-sinf(sqrtLerpPI) * 80.0F), model);
+
 		glm_scale_uni(model, 0.4F);
 		glm_translate(model, (vec3) {-0.5F, -0.5F, -0.5F});
 		render_item_update_light(light);
 		items[item.id]->renderItem(item_get(&item), &item, model, false,
 								   R_ITEM_ENV_FIRSTPERSON);
 	} else {
-		glm_translate(model, (vec3) {0.0F, 0.2F, 0.0F});
-		glm_rotate_y(model, glm_rad(-90.0F), model);
-		glm_rotate_z(model, glm_rad(-120.0F), model);
-		glm_scale_uni(model, 1.0F / 16.0F);
+		glm_translate_make(model,
+						   (vec3) {0.64F - sinf(sqrtLerpPI) * 0.3F,
+								   -0.6F + sinf(sqrtLerpPI * 2.0F) * 0.4F
+									   - 0.4F * sinf(swing_lerp * GLM_PI),
+								   -0.72F - sinHalfCircle * 0.4F});
+		glm_rotate_y(model, glm_rad(45.0F), model);
+		glm_rotate_y(model, glm_rad(sinf(sqrtLerpPI) * 70.0F), model);
+		glm_rotate_z(model, glm_rad(-sinHalfCircleWeird * 20.0F), model);
 
 		gfx_lighting(false);
 		gfx_bind_texture(&texture_mob_char);
-		// TODO: position, depth fix in inventory
-		render_model_box(model, (vec3) {0.0F, 0.0F, 0.0F},
-						 (vec3) {2.0F, 12.0F, 2.0F}, (vec3) {0.0F, 0.0F, 0.0F},
-						 (ivec2) {44, 20}, (ivec3) {4, 4, 12}, 0.0F, true,
+
+		glm_translate(model, (vec3) {-1.0F, 3.6F, 3.5F});
+		glm_rotate_z(model, glm_rad(120.0F), model);
+		glm_rotate_x(model, glm_rad(200.0F), model);
+		glm_rotate_y(model, glm_rad(-135.0F), model);
+		glm_translate(model, (vec3) {5.6F, 0.0F, 0.0F});
+
+		glm_translate(model,
+					  (vec3) {-5.0F / 16.0F, 2.0F / 16.0F, 0.0F / 16.0F});
+		glm_scale_uni(model, 1.0F / 16.0F);
+		glm_translate(model, (vec3) {-3.0F, -2.0F, -2.0F});
+
+		// TODO: depth fix in inventory
+		render_model_box(model, (vec3) {2, 12, 2}, (vec3) {2, 0, 2},
+						 (vec3) {180.0F, 0, 0}, (ivec2) {44, 20},
+						 (ivec3) {4, 4, 12}, 0.0F, false,
 						 gfx_lookup_light(light));
 	}
 
@@ -140,18 +157,16 @@ void screen_ingame_render3D(struct screen* s, mat4 view) {
 static void screen_ingame_update(struct screen* s, float dt) {
 	if(gstate.camera_hit.hit && input_pressed(IB_ACTION2)
 	   && !gstate.digging.active) {
-		struct item_data item;
-		if(inventory_get_hotbar_item(
-			   windowc_get_latest(gstate.windows[WINDOWC_INVENTORY]), &item)
-		   && item_is_block(&item)) {
-			svin_rpc_send(&(struct server_rpc) {
-				.type = SRPC_BLOCK_PLACE,
-				.payload.block_place.x = gstate.camera_hit.x,
-				.payload.block_place.y = gstate.camera_hit.y,
-				.payload.block_place.z = gstate.camera_hit.z,
-				.payload.block_place.side = gstate.camera_hit.side,
-			});
+		svin_rpc_send(&(struct server_rpc) {
+			.type = SRPC_BLOCK_PLACE,
+			.payload.block_place.x = gstate.camera_hit.x,
+			.payload.block_place.y = gstate.camera_hit.y,
+			.payload.block_place.z = gstate.camera_hit.z,
+			.payload.block_place.side = gstate.camera_hit.side,
+		});
 
+		if(inventory_get_hotbar_item(
+			   windowc_get_latest(gstate.windows[WINDOWC_INVENTORY]), NULL)) {
 			gstate.held_item_animation.punch.start = time_get();
 			gstate.held_item_animation.punch.place = true;
 		}
@@ -181,6 +196,7 @@ static void screen_ingame_update(struct screen* s, float dt) {
 				.payload.block_dig.x = gstate.digging.x,
 				.payload.block_dig.y = gstate.digging.y,
 				.payload.block_dig.z = gstate.digging.z,
+				.payload.block_dig.side = gstate.camera_hit.side,
 				.payload.block_dig.finished = false,
 			});
 		}
@@ -192,6 +208,7 @@ static void screen_ingame_update(struct screen* s, float dt) {
 				.payload.block_dig.x = gstate.digging.x,
 				.payload.block_dig.y = gstate.digging.y,
 				.payload.block_dig.z = gstate.digging.z,
+				.payload.block_dig.side = gstate.camera_hit.side,
 				.payload.block_dig.finished = true,
 			});
 
@@ -215,6 +232,7 @@ static void screen_ingame_update(struct screen* s, float dt) {
 				.payload.block_dig.x = gstate.digging.x,
 				.payload.block_dig.y = gstate.digging.y,
 				.payload.block_dig.z = gstate.digging.z,
+				.payload.block_dig.side = gstate.camera_hit.side,
 				.payload.block_dig.finished = false,
 			});
 		}
@@ -316,10 +334,11 @@ static void screen_ingame_update(struct screen* s, float dt) {
 
 static void screen_ingame_render2D(struct screen* s, int width, int height) {
 	char str[64];
-	sprintf(str, GAME_NAME " Alpha %i.%i.%i (impl. MC B1.7.3)", VERSION_MAJOR,
+	sprintf(str, GAME_NAME " Alpha %i.%i.%i (impl. B1.7.3)", VERSION_MAJOR,
 			VERSION_MINOR, VERSION_PATCH);
 	gutil_text(4, 4 + 17 * 0, str, 16, true);
 
+#ifndef NDEBUG
 	sprintf(str, "%0.1f fps, wait: gpu %0.1fms, vsync %0.1fms",
 			gstate.stats.fps, gstate.stats.dt_gpu * 1000.0F,
 			gstate.stats.dt_vsync * 1000.0F);
@@ -344,6 +363,7 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 				bd.type, bd.metadata);
 		gutil_text(4, 4 + 17 * 5, str, 16, true);
 	}
+#endif
 
 	int icon_offset = 32;
 	icon_offset += gutil_control_icon(icon_offset, IB_INVENTORY, "Inventory");
@@ -392,6 +412,16 @@ static void screen_ingame_render2D(struct screen* s, int width, int height) {
 						  * inventory_get_hotbar(windowc_get_latest(
 							  gstate.windows[WINDOWC_INVENTORY])),
 				  height - 32 * 8 / 5 - 23 * 2, 208, 0, 24, 24, 24 * 2, 24 * 2);
+
+	for(int k = 0; k < 10; k++) {
+		// draw hearts
+		gutil_texquad((width - 182 * 2) / 2 + k * 8 * 2,
+					  height - 32 * 8 / 5 - (22 + 10) * 2, 16, 229, 9, 9, 9 * 2,
+					  9 * 2);
+		gutil_texquad((width - 182 * 2) / 2 + k * 8 * 2,
+					  height - 32 * 8 / 5 - (22 + 10) * 2, 52, 229, 9, 9, 9 * 2,
+					  9 * 2);
+	}
 }
 
 struct screen screen_ingame = {

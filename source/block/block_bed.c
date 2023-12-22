@@ -23,10 +23,11 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_WOOD;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 1.0F, 0.5625F, 1.0F);
-	return true;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 1.0F, 0.5625F, 1.0F);
+	return 1;
 }
 
 // TODO: add missing bed legs to mask? (difficult, many states)
@@ -78,12 +79,21 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 	}
 }
 
+static size_t getDroppedItem(struct block_info* this, struct item_data* it,
+							 struct random_gen* g) {
+	// TODO
+	return 0;
+}
+
 struct block block_bed = {
 	.name = "Bed",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = getDroppedItem,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_bed,
 	.renderBlockAlways = NULL,

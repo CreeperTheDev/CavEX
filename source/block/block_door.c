@@ -27,31 +27,33 @@ static enum block_material getMaterial2(struct block_info* this) {
 	return MATERIAL_STONE;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	uint8_t state = ((this->block->metadata & 0x03)
-					 + ((this->block->metadata & 0x04) ? 1 : 0))
-		% 4;
-	switch(state) {
-		case 0:
-			aabb_setsize(x, 0.1875F, 1.0F, 1.0F);
-			aabb_translate(x, -0.40625F, 0, 0);
-			break;
-		case 1:
-			aabb_setsize(x, 1.0F, 1.0F, 0.1875F);
-			aabb_translate(x, 0, 0, -0.40625F);
-			break;
-		case 2:
-			aabb_setsize(x, 0.1875F, 1.0F, 1.0F);
-			aabb_translate(x, 0.40625F, 0, 0);
-			break;
-		case 3:
-			aabb_setsize(x, 1.0F, 1.0F, 0.1875F);
-			aabb_translate(x, 0, 0, 0.40625F);
-			break;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x) {
+		uint8_t state = ((this->block->metadata & 0x03)
+						 + ((this->block->metadata & 0x04) ? 1 : 0))
+			% 4;
+		switch(state) {
+			case 0:
+				aabb_setsize(x, 0.1875F, 1.0F, 1.0F);
+				aabb_translate(x, -0.40625F, 0, 0);
+				break;
+			case 1:
+				aabb_setsize(x, 1.0F, 1.0F, 0.1875F);
+				aabb_translate(x, 0, 0, -0.40625F);
+				break;
+			case 2:
+				aabb_setsize(x, 0.1875F, 1.0F, 1.0F);
+				aabb_translate(x, 0.40625F, 0, 0);
+				break;
+			case 3:
+				aabb_setsize(x, 1.0F, 1.0F, 0.1875F);
+				aabb_translate(x, 0, 0, 0.40625F);
+				break;
+		}
 	}
 
-	return true;
+	return 1;
 }
 
 static struct face_occlusion*
@@ -72,12 +74,21 @@ static uint8_t getTextureIndex2(struct block_info* this, enum side side) {
 		tex_atlas_lookup(TEXAT_DOOR_IRON_BOTTOM);
 }
 
+static size_t getDroppedItem(struct block_info* this, struct item_data* it,
+							 struct random_gen* g) {
+	// TODO
+	return 0;
+}
+
 struct block block_wooden_door = {
 	.name = "Wooden Door",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial1,
 	.getTextureIndex = getTextureIndex1,
+	.getDroppedItem = getDroppedItem,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_door,
 	.renderBlockAlways = NULL,
@@ -108,6 +119,9 @@ struct block block_iron_door = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial2,
 	.getTextureIndex = getTextureIndex2,
+	.getDroppedItem = getDroppedItem,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_door,
 	.renderBlockAlways = NULL,

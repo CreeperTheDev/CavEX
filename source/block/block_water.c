@@ -23,13 +23,9 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	int block_height = (this->block->metadata & 0x8) ?
-		16 :
-		(8 - this->block->metadata) * 2 * 7 / 8;
-	aabb_setsize(x, 1.0F, (float)block_height / 16.0F, 1.0F);
-	return false;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	return 0;
 }
 
 static struct face_occlusion*
@@ -55,12 +51,20 @@ static uint8_t getTextureIndex2(struct block_info* this, enum side side) {
 	return TEXTURE_INDEX(5, 0);
 }
 
+static size_t getDroppedItem(struct block_info* this, struct item_data* it,
+							 struct random_gen* g) {
+	return 0;
+}
+
 struct block block_water_still = {
 	.name = "Water",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex1,
+	.getDroppedItem = getDroppedItem,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = true,
 	.renderBlock = render_block_fluid,
 	.renderBlockAlways = NULL,
@@ -91,6 +95,9 @@ struct block block_water_flowing = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex2,
+	.getDroppedItem = getDroppedItem,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = true,
 	.renderBlock = render_block_fluid,
 	.renderBlockAlways = NULL,

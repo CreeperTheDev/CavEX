@@ -23,10 +23,11 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 1.0F, 1.0F, 1.0F);
-	return true;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 1.0F, 1.0F, 1.0F);
+	return 1;
 }
 
 static struct face_occlusion*
@@ -52,12 +53,59 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 	}
 }
 
+static size_t drop_coal(struct block_info* this, struct item_data* it,
+						struct random_gen* g) {
+	if(it) {
+		it->id = ITEM_COAL;
+		it->durability = 0;
+		it->count = 1;
+	}
+
+	return 1;
+}
+
+static size_t drop_diamond(struct block_info* this, struct item_data* it,
+						   struct random_gen* g) {
+	if(it) {
+		it->id = ITEM_DIAMOND;
+		it->durability = 0;
+		it->count = 1;
+	}
+
+	return 1;
+}
+
+static size_t drop_redstone(struct block_info* this, struct item_data* it,
+							struct random_gen* g) {
+	if(it) {
+		it->id = ITEM_REDSTONE;
+		it->durability = 0;
+		it->count = rand_gen_range(g, 4, 5);
+	}
+
+	return 1;
+}
+
+static size_t drop_lapis(struct block_info* this, struct item_data* it,
+						 struct random_gen* g) {
+	if(it) {
+		it->id = ITEM_DYE;
+		it->durability = 4;
+		it->count = rand_gen_range(g, 4, 8);
+	}
+
+	return 1;
+}
+
 struct block block_coalore = {
 	.name = "Coal ore",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = drop_coal,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
@@ -88,6 +136,9 @@ struct block block_ironore = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
@@ -118,6 +169,9 @@ struct block block_goldore = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
@@ -148,6 +202,9 @@ struct block block_diamondore = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = drop_diamond,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
@@ -178,6 +235,9 @@ struct block block_redstoneore = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = drop_redstone,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
@@ -208,6 +268,9 @@ struct block block_redstoneore_lit = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = drop_redstone,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
@@ -238,6 +301,9 @@ struct block block_lapisore = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = drop_lapis,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,

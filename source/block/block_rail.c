@@ -24,15 +24,16 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 1.0F,
-				 ((this->block->metadata & 0x7) > 1
-				  && (this->block->metadata & 0x7) < 6) ?
-					 0.625F :
-					 0.125F,
-				 1.0F);
-	return !entity;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 1.0F,
+					 ((this->block->metadata & 0x7) > 1
+					  && (this->block->metadata & 0x7) < 6) ?
+						 0.625F :
+						 0.125F,
+					 1.0F);
+	return entity ? 0 : 1;
 }
 
 static struct face_occlusion*
@@ -75,6 +76,9 @@ struct block block_rail = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex1,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_rail,
 	.renderBlockAlways = NULL,
@@ -106,6 +110,9 @@ struct block block_powered_rail = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex2,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_rail,
 	.renderBlockAlways = NULL,
@@ -137,6 +144,9 @@ struct block block_detector_rail = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex3,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_rail,
 	.renderBlockAlways = NULL,

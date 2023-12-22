@@ -24,10 +24,11 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_ORGANIC;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 0.8125F, 0.8125F, 0.8125F);
-	return !entity;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 0.8125F, 0.8125F, 0.8125F);
+	return entity ? 0 : 1;
 }
 
 static struct face_occlusion*
@@ -75,12 +76,33 @@ static bool onItemPlace2(struct server_local* s, struct item_data* it,
 	return block_place_default(s, it, where, on, on_side);
 }
 
+static size_t drop_seed(struct block_info* this, struct item_data* it,
+						struct random_gen* g) {
+	bool drop_seed = (rand_gen(g) % 8) == 0;
+
+	if(it && drop_seed) {
+		it->id = ITEM_SEED;
+		it->durability = 0;
+		it->count = 1;
+	}
+
+	return drop_seed ? 1 : 0;
+}
+
+static size_t drop_nothing(struct block_info* this, struct item_data* it,
+						   struct random_gen* g) {
+	return 0;
+}
+
 struct block block_tallgrass = {
 	.name = "Tallgrass",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex1,
+	.getDroppedItem = drop_seed,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_cross,
 	.renderBlockAlways = NULL,
@@ -112,6 +134,9 @@ struct block block_deadbush = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex2,
+	.getDroppedItem = drop_nothing,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_cross,
 	.renderBlockAlways = NULL,

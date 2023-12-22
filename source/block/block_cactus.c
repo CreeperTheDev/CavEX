@@ -24,10 +24,11 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_ORGANIC;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 0.875F, 1.0F, 0.875F);
-	return true;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 0.875F, 1.0F, 0.875F);
+	return 1;
 }
 
 static struct face_occlusion side_top_bottom = {
@@ -66,12 +67,60 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 	return block_place_default(s, it, where, on, on_side);
 }
 
+static void onRandomTick(struct server_local* s, struct block_info* this) {
+	bool has_support = false;
+	int height = 1;
+	for(int k = 0; k < 2; k++) {
+		struct block_data below;
+		if(!server_world_get_block(&s->world, this->x, this->y - k - 1, this->z,
+								   &below))
+			below.type = BLOCK_AIR;
+
+		if(below.type == BLOCK_CACTUS) {
+			height++;
+			has_support = true;
+		} else {
+			if(below.type == BLOCK_SAND)
+				has_support = true;
+			break;
+		}
+	}
+
+	if(!has_support) {
+		server_world_set_block(&s->world, this->x, this->y, this->z,
+							   (struct block_data) {
+								   .type = BLOCK_AIR,
+								   .metadata = 0,
+							   });
+		server_local_spawn_block_drops(s, this);
+	} else if(height < 3) {
+		if(this->block->metadata == 0xF) {
+			struct block_data above;
+			if(!server_world_get_block(&s->world, this->x, this->y + 1, this->z,
+									   &above)
+			   || above.type == BLOCK_AIR)
+				server_world_set_block(&s->world, this->x, this->y + 1, this->z,
+									   (struct block_data) {
+										   .type = BLOCK_CACTUS,
+										   .metadata = 0,
+									   });
+		}
+
+		this->block->metadata++;
+		server_world_set_block(&s->world, this->x, this->y, this->z,
+							   *this->block);
+	}
+}
+
 struct block block_cactus = {
 	.name = "Cactus",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = onRandomTick,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_cactus,
 	.renderBlockAlways = NULL,

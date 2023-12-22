@@ -34,6 +34,7 @@
 #define MAX_CHUNKS ((MAX_VIEW_DISTANCE * 2 + 2) * (MAX_VIEW_DISTANCE * 2 + 2))
 
 struct server_local {
+	struct random_gen rand_src;
 	struct {
 		double x, y, z;
 		float rx, ry;
@@ -41,15 +42,21 @@ struct server_local {
 		bool has_pos;
 		bool finished_loading;
 		struct inventory inventory;
+		struct inventory* active_inventory;
 	} player;
 	struct server_world world;
 	dict_entity_t entities;
 	uint64_t world_time;
-	ptime_t world_time_start;
 	string_t level_name;
 	struct level_archive level;
 };
 
 void server_local_create(struct server_local* s);
+struct entity* server_local_spawn_item(vec3 pos, struct item_data* it,
+									   bool throw, struct server_local* s);
+void server_local_spawn_block_drops(struct server_local* s,
+									struct block_info* blk_info);
+void server_local_send_inv_changes(set_inv_slot_t changes,
+								   struct inventory* inv, uint8_t window);
 
 #endif

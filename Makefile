@@ -23,7 +23,7 @@ include $(DEVKITPPC)/wii_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source source/block source/entity source/graphics source/network source/game source/game/gui source/platform source/item source/cNBT source/lodepng source/parson
+SOURCES		:=	source source/block source/entity source/graphics source/network source/game source/game/gui source/platform source/item source/item/items source/cNBT source/lodepng source/parson
 DATA		:=
 TEXTURES	:=	textures
 INCLUDES	:=
@@ -32,10 +32,10 @@ INCLUDES	:=
 # options for code generation
 #---------------------------------------------------------------------------------
 
-CFLAGS		=	-std=c99 -pedantic -Wextra -Wno-unused-parameter -flto=auto -O3 -Wall -DPLATFORM_WII $(MACHDEP) $(INCLUDE)
+CFLAGS		=	-std=c99 -pedantic -Wextra -Wno-unused-parameter -flto=auto -O3 -Wall -DNDEBUG -DPLATFORM_WII $(MACHDEP) $(INCLUDE)
 CXXFLAGS	=	$(CFLAGS)
 
-LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map
+LDFLAGS	=	$(MACHDEP) -Wl,-Map,$(notdir $@).map
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project

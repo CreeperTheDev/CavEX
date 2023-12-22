@@ -24,32 +24,34 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_WOOD;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	if(this->block->metadata & 0x04) {
-		switch(this->block->metadata & 0x03) {
-			case 0:
-				aabb_setsize(x, 1.0F, 1.0F, 0.1875F);
-				aabb_translate(x, 0, 0, 0.40625F);
-				break;
-			case 1:
-				aabb_setsize(x, 1.0F, 1.0F, 0.1875F);
-				aabb_translate(x, 0, 0, -0.40625F);
-				break;
-			case 2:
-				aabb_setsize(x, 0.1875F, 1.0F, 1.0F);
-				aabb_translate(x, 0.40625F, 0, 0);
-				break;
-			case 3:
-				aabb_setsize(x, 0.1875F, 1.0F, 1.0F);
-				aabb_translate(x, -0.40625F, 0, 0);
-				break;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x) {
+		if(this->block->metadata & 0x04) {
+			switch(this->block->metadata & 0x03) {
+				case 0:
+					aabb_setsize(x, 1.0F, 1.0F, 0.1875F);
+					aabb_translate(x, 0, 0, 0.40625F);
+					break;
+				case 1:
+					aabb_setsize(x, 1.0F, 1.0F, 0.1875F);
+					aabb_translate(x, 0, 0, -0.40625F);
+					break;
+				case 2:
+					aabb_setsize(x, 0.1875F, 1.0F, 1.0F);
+					aabb_translate(x, 0.40625F, 0, 0);
+					break;
+				case 3:
+					aabb_setsize(x, 0.1875F, 1.0F, 1.0F);
+					aabb_translate(x, -0.40625F, 0, 0);
+					break;
+			}
+		} else {
+			aabb_setsize(x, 1.0F, 0.1875F, 1.0F);
 		}
-	} else {
-		aabb_setsize(x, 1.0F, 0.1875F, 1.0F);
 	}
 
-	return true;
+	return 1;
 }
 
 static struct face_occlusion*
@@ -90,13 +92,21 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 		default: return false;
 	}
 
-	server_world_set_block(&s->world, where->x, where->y, where->z,
-						   (struct block_data) {
-							   .type = it->id,
-							   .metadata = metadata,
-							   .sky_light = 0,
-							   .torch_light = 0,
-						   });
+	struct block_data blk = (struct block_data) {
+		.type = it->id,
+		.metadata = metadata,
+		.sky_light = 0,
+		.torch_light = 0,
+	};
+
+	struct block_info blk_info = *where;
+	blk_info.block = &blk;
+
+	if(entity_local_player_block_collide(
+		   (vec3) {s->player.x, s->player.y, s->player.z}, &blk_info))
+		return false;
+
+	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
 	return true;
 }
 
@@ -106,6 +116,9 @@ struct block block_trapdoor = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_trapdoor,
 	.renderBlockAlways = NULL,

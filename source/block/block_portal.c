@@ -23,9 +23,9 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	return false;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	return 0;
 }
 
 static struct face_occlusion*
@@ -37,12 +37,20 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 	return TEXTURE_INDEX(0, 0);
 }
 
+static size_t getDroppedItem(struct block_info* this, struct item_data* it,
+							 struct random_gen* g) {
+	return 0;
+}
+
 struct block block_portal = {
 	.name = "Portal",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = getDroppedItem,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = true,
 	.renderBlock = render_block_portal,
 	.renderBlockAlways = NULL,

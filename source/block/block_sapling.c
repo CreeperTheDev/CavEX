@@ -24,10 +24,11 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_ORGANIC;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 0.8125F, 0.8125F, 0.8125F);
-	return !entity;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 0.8125F, 0.8125F, 0.8125F);
+	return entity ? 0 : 1;
 }
 
 static struct face_occlusion*
@@ -36,10 +37,11 @@ getSideMask(struct block_info* this, enum side side, struct block_info* it) {
 }
 
 static uint8_t getTextureIndex(struct block_info* this, enum side side) {
-	switch(this->block->metadata) {
+	switch(this->block->metadata & 0x3) {
+		default:
+		case 0: return tex_atlas_lookup(TEXAT_SAPLING_OAK);
 		case 1: return tex_atlas_lookup(TEXAT_SAPLING_SPRUCE);
 		case 2: return tex_atlas_lookup(TEXAT_SAPLING_BIRCH);
-		default: return tex_atlas_lookup(TEXAT_SAPLING_OAK);
 	}
 }
 
@@ -57,12 +59,84 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 	return block_place_default(s, it, where, on, on_side);
 }
 
+static size_t getDroppedItem(struct block_info* this, struct item_data* it,
+							 struct random_gen* g) {
+	if(it) {
+		it->id = this->block->type;
+		it->durability = this->block->metadata & 3;
+		it->count = 1;
+	}
+
+	return 1;
+}
+
+static void onRandomTick(struct server_local* s, struct block_info* this) {
+	if(this->block->sky_light < 9 && this->block->torch_light < 9)
+		return;
+
+	int age = this->block->metadata >> 2;
+	int tree_type = this->block->metadata & 3;
+
+	if(age < 3) {
+		this->block->metadata = ((age + 1) << 2) | tree_type;
+		server_world_set_block(&s->world, this->x, this->y, this->z,
+							   *this->block);
+		return;
+	}
+
+	int height = rand_gen_range(&s->rand_src, 4, 7);
+
+	for(int k = 1; k < height; k++) {
+		struct block_data blk;
+		if(server_world_get_block(&s->world, this->x, this->y + k, this->z,
+								  &blk)
+		   && blk.type != BLOCK_AIR) {
+			return;
+		}
+	}
+
+	for(int k = 0; k < height; k++)
+		server_world_set_block(&s->world, this->x, this->y + k, this->z,
+							   (struct block_data) {
+								   .type = BLOCK_LOG,
+								   .metadata = this->block->metadata & 0x3,
+							   });
+
+	for(int y = -3; y <= 0; y++) {
+		int size = (y < -1) ? 2 : 1;
+
+		for(int x = -size; x <= size; x++) {
+			for(int z = -size; z <= size; z++) {
+				struct block_data blk;
+				if((x != 0 || z != 0 || y == 0)
+				   && ((abs(x) != size || abs(z) != size)
+					   || (rand_gen(&s->rand_src) & 1 && y < 0))
+				   && server_world_get_block(&s->world, this->x + x,
+											 this->y + height + y, this->z + z,
+											 &blk)
+				   && blk.type == BLOCK_AIR) {
+					server_world_set_block(
+						&s->world, this->x + x, this->y + height + y,
+						this->z + z,
+						(struct block_data) {
+							.type = BLOCK_LEAVES,
+							.metadata = this->block->metadata & 0x3,
+						});
+				}
+			}
+		}
+	}
+}
+
 struct block block_sapling = {
 	.name = "Sapling",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = getDroppedItem,
+	.onRandomTick = onRandomTick,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_cross,
 	.renderBlockAlways = NULL,

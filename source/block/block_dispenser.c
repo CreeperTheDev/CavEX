@@ -24,10 +24,11 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 1.0F, 1.0F, 1.0F);
-	return true;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 1.0F, 1.0F, 1.0F);
+	return 1;
 }
 
 static struct face_occlusion*
@@ -69,18 +70,26 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 	double dz = s->player.z - (where->z + 0.5);
 
 	if(fabs(dx) > fabs(dz)) {
-		metadata = (dx >= 0) ? 3 : 1;
+		metadata = (dx >= 0) ? 5 : 4;
 	} else {
-		metadata = (dz >= 0) ? 0 : 2;
+		metadata = (dz >= 0) ? 3 : 2;
 	}
 
-	server_world_set_block(&s->world, where->x, where->y, where->z,
-						   (struct block_data) {
-							   .type = it->id,
-							   .metadata = metadata,
-							   .sky_light = 0,
-							   .torch_light = 0,
-						   });
+	struct block_data blk = (struct block_data) {
+		.type = it->id,
+		.metadata = metadata,
+		.sky_light = 0,
+		.torch_light = 0,
+	};
+
+	struct block_info blk_info = *where;
+	blk_info.block = &blk;
+
+	if(entity_local_player_block_collide(
+		   (vec3) {s->player.x, s->player.y, s->player.z}, &blk_info))
+		return false;
+
+	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
 	return true;
 }
 
@@ -90,6 +99,9 @@ struct block block_dispenser = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,

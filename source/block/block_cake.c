@@ -23,11 +23,14 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_WOOL;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 0.875F - 0.125F * this->block->metadata, 0.5F, 0.875F);
-	aabb_translate(x, 0.0625F * this->block->metadata, 0, 0);
-	return true;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x) {
+		aabb_setsize(x, 0.875F - 0.125F * this->block->metadata, 0.5F, 0.875F);
+		aabb_translate(x, 0.0625F * this->block->metadata, 0, 0);
+	}
+
+	return 1;
 }
 
 // TODO: mask not correct for all states
@@ -56,12 +59,20 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 	}
 }
 
+static size_t getDroppedItem(struct block_info* this, struct item_data* it,
+							 struct random_gen* g) {
+	return 0;
+}
+
 struct block block_cake = {
 	.name = "Cake",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = getDroppedItem,
+	.onRandomTick = NULL,
+	.onRightClick = NULL,
 	.transparent = false,
 	.renderBlock = render_block_cake,
 	.renderBlockAlways = NULL,

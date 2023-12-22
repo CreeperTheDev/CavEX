@@ -33,6 +33,8 @@ struct tex_gfx texture_items;
 struct tex_gfx texture_font;
 struct tex_gfx texture_anim;
 struct tex_gfx texture_gui_inventory;
+struct tex_gfx texture_gui_crafting;
+struct tex_gfx texture_gui_furnace;
 struct tex_gfx texture_gui2;
 struct tex_gfx texture_controls;
 struct tex_gfx texture_pointer;
@@ -40,6 +42,7 @@ struct tex_gfx texture_clouds;
 struct tex_gfx texture_sun;
 struct tex_gfx texture_moon;
 struct tex_gfx texture_shadow;
+struct tex_gfx texture_water;
 
 struct tex_gfx texture_mob_char;
 
@@ -87,6 +90,10 @@ void tex_init() {
 	tex_gfx_load_file(&texture_anim, "anim.png", TEX_FMT_RGBA32, false);
 	tex_gfx_load_file(&texture_gui_inventory, "gui/inventory.png",
 					  TEX_FMT_RGBA16, false);
+	tex_gfx_load_file(&texture_gui_crafting, "gui/crafting.png", TEX_FMT_RGBA16,
+					  false);
+	tex_gfx_load_file(&texture_gui_furnace, "gui/furnace.png", TEX_FMT_RGBA16,
+					  false);
 	tex_gfx_load_file(&texture_gui2, "gui_2.png", TEX_FMT_RGBA16, false);
 	tex_gfx_load_file(&texture_items, "items.png", TEX_FMT_RGBA16, false);
 	tex_gfx_load_file(&texture_controls, "controls.png", TEX_FMT_RGBA16, false);
@@ -96,6 +103,8 @@ void tex_init() {
 	tex_gfx_load_file(&texture_sun, "terrain/sun.png", TEX_FMT_RGB16, false);
 	tex_gfx_load_file(&texture_moon, "terrain/moon.png", TEX_FMT_RGB16, false);
 	tex_gfx_load_file(&texture_shadow, "misc/shadow.png", TEX_FMT_IA4, false);
+	tex_gfx_load_file(&texture_water, "misc/water.png", TEX_FMT_RGBA16, false);
+	tex_gfx_wrap_mode(&texture_water, true);
 
 	tex_gfx_load_file(&texture_armor_chain1, "armor/chain_1.png",
 					  TEX_FMT_RGBA16, false);

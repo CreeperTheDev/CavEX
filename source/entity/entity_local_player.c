@@ -21,19 +21,38 @@
 #include "../platform/input.h"
 #include "entity.h"
 
-static bool test_in_lava(struct block_data* blk, w_coord_t x, w_coord_t y,
-						 w_coord_t z) {
-	return blk->type == BLOCK_LAVA_FLOW || blk->type == BLOCK_LAVA_STILL;
+#define EYE_HEIGHT 1.62F
+
+static void liquid_aabb(struct AABB* out, struct block_info* blk_info) {
+	int block_height = (blk_info->block->metadata & 0x8) ?
+		16 :
+		(8 - blk_info->block->metadata) * 2 * 7 / 8;
+	aabb_setsize(out, 1.0F, (float)block_height / 16.0F, 1.0F);
+	aabb_translate(out, blk_info->x, blk_info->y, blk_info->z);
 }
 
-static bool test_in_water(struct block_data* blk, w_coord_t x, w_coord_t y,
-						  w_coord_t z) {
-	return blk->type == BLOCK_WATER_FLOW || blk->type == BLOCK_WATER_STILL;
+static bool test_in_lava(struct AABB* entity, struct block_info* blk_info) {
+	if(blk_info->block->type != BLOCK_LAVA_FLOW
+	   && blk_info->block->type != BLOCK_LAVA_STILL)
+		return false;
+
+	struct AABB bbox;
+	liquid_aabb(&bbox, blk_info);
+	return aabb_intersection(entity, &bbox);
 }
 
-static bool test_in_liquid(struct block_data* blk, w_coord_t x, w_coord_t y,
-						   w_coord_t z) {
-	return test_in_water(blk, x, y, z) || test_in_lava(blk, x, y, z);
+static bool test_in_water(struct AABB* entity, struct block_info* blk_info) {
+	if(blk_info->block->type != BLOCK_WATER_FLOW
+	   && blk_info->block->type != BLOCK_WATER_STILL)
+		return false;
+
+	struct AABB bbox;
+	liquid_aabb(&bbox, blk_info);
+	return aabb_intersection(entity, &bbox);
+}
+
+static bool test_in_liquid(struct AABB* entity, struct block_info* blk_info) {
+	return test_in_water(entity, blk_info) || test_in_lava(entity, blk_info);
 }
 
 static bool entity_tick(struct entity* e) {
@@ -48,11 +67,11 @@ static bool entity_tick(struct entity* e) {
 
 	struct AABB bbox;
 	aabb_setsize_centered(&bbox, 0.6F, 1.0F, 0.6F);
-	aabb_translate(&bbox, e->pos[0], e->pos[1] + 1.8F / 2.0F - 1.62F,
+	aabb_translate(&bbox, e->pos[0], e->pos[1] + 1.8F / 2.0F - EYE_HEIGHT,
 				   e->pos[2]);
 
-	bool in_water = entity_aabb_intersection(e, &bbox, test_in_water);
-	bool in_lava = entity_aabb_intersection(e, &bbox, test_in_lava);
+	bool in_water = entity_intersection(e, &bbox, test_in_water);
+	bool in_lava = entity_intersection(e, &bbox, test_in_lava);
 
 	float slipperiness
 		= (in_lava || in_water) ? 1.0F : (e->on_ground ? 0.6F : 1.0F);
@@ -104,10 +123,20 @@ static bool entity_tick(struct entity* e) {
 		e->data.local_player.jump_ticks = 0;
 	}
 
-	float eye_height = 1.62F;
-
 	aabb_setsize_centered(&bbox, 0.6F, 1.8F, 0.6F);
-	aabb_translate(&bbox, 0.0F, 1.8F / 2.0F - eye_height, 0.0F);
+	aabb_translate(&bbox, 0.0F, 1.8F / 2.0F - EYE_HEIGHT, 0.0F);
+
+	// unstuck player
+	struct AABB tmp1 = bbox, tmp2 = bbox;
+	float unstuck_move = 0.01F;
+	aabb_translate(&tmp1, e->pos[0], e->pos[1], e->pos[2]);
+	aabb_translate(&tmp2, e->pos[0], e->pos[1] + unstuck_move, e->pos[2]);
+
+	// is the player stuck in the floor due to inaccuracy?
+	if(entity_aabb_intersection(e, &tmp1)
+	   && !entity_aabb_intersection(e, &tmp2)) {
+		e->pos[1] += unstuck_move;
+	}
 
 	vec3 new_pos, new_vel;
 	glm_vec3_copy(e->pos, new_pos);
@@ -133,8 +162,9 @@ static bool entity_tick(struct entity* e) {
 		new_vel[1] = -0.6F;
 		entity_try_move(e, new_pos, new_vel, &bbox, 1, &collision, &ground);
 
-		if(glm_vec3_distance2(e->pos_old, e->pos)
-		   < glm_vec3_distance2(e->pos_old, new_pos)) {
+		if(new_pos[1] > e->pos_old[1]
+		   && glm_vec3_distance2(e->pos_old, e->pos)
+			   < glm_vec3_distance2(e->pos_old, new_pos)) {
 			collision_xz = collision;
 			e->on_ground = ground;
 			glm_vec3_copy(new_pos, e->pos);
@@ -157,7 +187,7 @@ static bool entity_tick(struct entity* e) {
 
 		struct block_data blk;
 		if(entity_get_block(e, floorf(e->pos[0]),
-							floorf(e->pos[1] - eye_height), floorf(e->pos[2]),
+							floorf(e->pos[1] - EYE_HEIGHT), floorf(e->pos[2]),
 							&blk)
 		   && blk.type == BLOCK_LADDER) {
 			if(collision_xz)
@@ -178,11 +208,21 @@ static bool entity_tick(struct entity* e) {
 					   e->pos[1] + e->vel[1] + 1.8F / 2.0F - 1.62F + 0.6F,
 					   e->pos[2] + e->vel[2]);
 
-		if(!entity_aabb_intersection(e, &tmp, test_in_liquid))
+		if(!entity_intersection(e, &tmp, test_in_liquid))
 			e->vel[1] = 0.3F;
 	}
 
 	return false;
+}
+
+bool entity_local_player_block_collide(vec3 pos, struct block_info* blk_info) {
+	assert(pos && blk_info);
+
+	struct AABB bbox;
+	aabb_setsize_centered(&bbox, 0.6F, 1.8F, 0.6F);
+	aabb_translate(&bbox, pos[0], 1.8F / 2.0F - EYE_HEIGHT + pos[1], pos[2]);
+
+	return entity_block_aabb_test(&bbox, blk_info);
 }
 
 void entity_local_player(uint32_t id, struct entity* e, struct world* w) {

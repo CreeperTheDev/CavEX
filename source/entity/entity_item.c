@@ -46,7 +46,7 @@ static bool entity_server_tick(struct entity* e, struct server_local* s) {
 	struct AABB tmp = bbox;
 	aabb_translate(&tmp, e->pos[0], e->pos[1], e->pos[2]);
 
-	if(entity_aabb_intersection(e, &tmp, NULL)) { // is item stuck in block?
+	if(entity_aabb_intersection(e, &tmp)) { // is item stuck in block?
 		// find possible new position, try top/bottom last
 		enum side sides[6] = {SIDE_LEFT, SIDE_RIGHT, SIDE_FRONT,
 							  SIDE_BACK, SIDE_TOP,	 SIDE_BOTTOM};
@@ -60,7 +60,7 @@ static bool entity_server_tick(struct entity* e, struct server_local* s) {
 			struct AABB tmp2 = tmp;
 			aabb_translate(&tmp2, x, y, z);
 
-			if(!entity_aabb_intersection(e, &tmp2, NULL)) {
+			if(!entity_aabb_intersection(e, &tmp2)) {
 				float threshold;
 				entity_intersection_threshold(e, &bbox, new_pos, e->pos,
 											  &threshold);
@@ -94,22 +94,11 @@ static bool entity_server_tick(struct entity* e, struct server_local* s) {
 					 e->pos,
 					 (vec3) {s->player.x, s->player.y - 0.6F, s->player.z})
 				  < glm_pow2(2.0F)) { // allow pickup after 2s
-		bool slots_changed[INVENTORY_SIZE];
-		memset(slots_changed, false, sizeof(slots_changed));
-
 		// TODO: case where item cannot be picked up completely
-		inventory_collect_inventory(&s->player.inventory, &e->data.item.item,
-									slots_changed);
-
-		for(size_t k = 0; k < INVENTORY_SIZE; k++) {
-			if(slots_changed[k])
-				clin_rpc_send(&(struct client_rpc) {
-					.type = CRPC_INVENTORY_SLOT,
-					.payload.inventory_slot.window = WINDOWC_INVENTORY,
-					.payload.inventory_slot.slot = k,
-					.payload.inventory_slot.item = s->player.inventory.items[k],
-				});
-		}
+		if(s->player.active_inventory && s->player.active_inventory->logic
+		   && s->player.active_inventory->logic->on_collect)
+			s->player.active_inventory->logic->on_collect(
+				s->player.active_inventory, &e->data.item.item);
 
 		clin_rpc_send(&(struct client_rpc) {
 			.type = CRPC_PICKUP_ITEM,
@@ -149,12 +138,12 @@ static void entity_render(struct entity* e, mat4 view, float tick_delta) {
 		glm_mat4_mul(view, model, mv);
 
 		int amount = 1;
-		if(e->data.item.item.count > 1) {
-			amount = 2;
+		if(e->data.item.item.count > 20) {
+			amount = 4;
 		} else if(e->data.item.item.count > 5) {
 			amount = 3;
-		} else if(e->data.item.item.count > 20) {
-			amount = 4;
+		} else if(e->data.item.item.count > 1) {
+			amount = 2;
 		}
 
 		vec3 displacement[4] = {
@@ -194,12 +183,4 @@ void entity_item(uint32_t id, struct entity* e, bool server, void* world,
 	e->data.item.item = it;
 
 	entity_default_init(e, server, world);
-
-	if(server) {
-		glm_vec3_copy(
-			(vec3) {rand_flt() - 0.5F, rand_flt() - 0.5F, rand_flt() - 0.5F},
-			e->vel);
-		glm_vec3_normalize(e->vel);
-		glm_vec3_scale(e->vel, (2.0F * rand_flt() + 0.5F) * 0.1F, e->vel);
-	}
 }

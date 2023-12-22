@@ -58,6 +58,8 @@ extern struct tex_gfx texture_items;
 extern struct tex_gfx texture_font;
 extern struct tex_gfx texture_anim;
 extern struct tex_gfx texture_gui_inventory;
+extern struct tex_gfx texture_gui_crafting;
+extern struct tex_gfx texture_gui_furnace;
 extern struct tex_gfx texture_gui2;
 extern struct tex_gfx texture_controls;
 extern struct tex_gfx texture_pointer;
@@ -65,6 +67,7 @@ extern struct tex_gfx texture_clouds;
 extern struct tex_gfx texture_sun;
 extern struct tex_gfx texture_moon;
 extern struct tex_gfx texture_shadow;
+extern struct tex_gfx texture_water;
 
 extern struct tex_gfx texture_mob_char;
 
@@ -91,5 +94,6 @@ void tex_gfx_load_file(struct tex_gfx* tex, const char* filename,
 					   enum tex_format type, bool linear);
 void tex_gfx_bind(struct tex_gfx* tex, int slot);
 void tex_gfx_lookup(struct tex_gfx* tex, int x, int y, uint8_t* color);
+void tex_gfx_wrap_mode(struct tex_gfx* tex, bool repeat);
 
 #endif

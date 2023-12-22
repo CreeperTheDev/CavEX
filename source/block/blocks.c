@@ -135,6 +135,7 @@ void blocks_init() {
 			assert(blocks[k]->getSideMask);
 			assert(blocks[k]->getBoundingBox);
 			assert(blocks[k]->renderBlock);
+			assert(blocks[k]->getDroppedItem);
 			assert(blocks[k]->block_item.renderItem);
 			assert(blocks[k]->block_item.onItemPlace);
 		}
@@ -206,12 +207,31 @@ void blocks_side_offset(enum side s, int* x, int* y, int* z) {
 bool block_place_default(struct server_local* s, struct item_data* it,
 						 struct block_info* where, struct block_info* on,
 						 enum side on_side) {
-	server_world_set_block(&s->world, where->x, where->y, where->z,
-						   (struct block_data) {
-							   .type = it->id,
-							   .metadata = it->durability,
-							   .sky_light = 0,
-							   .torch_light = 0,
-						   });
+	struct block_data blk = (struct block_data) {
+		.type = it->id,
+		.metadata = it->durability,
+		.sky_light = 0,
+		.torch_light = 0,
+	};
+
+	struct block_info blk_info = *where;
+	blk_info.block = &blk;
+
+	if(entity_local_player_block_collide(
+		   (vec3) {s->player.x, s->player.y, s->player.z}, &blk_info))
+		return false;
+
+	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
 	return true;
+}
+
+size_t block_drop_default(struct block_info* this, struct item_data* it,
+						  struct random_gen* g) {
+	if(it) {
+		it->id = this->block->type;
+		it->durability = 0;
+		it->count = 1;
+	}
+
+	return 1;
 }

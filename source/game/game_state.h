@@ -34,11 +34,12 @@
 
 #define GAME_NAME "CavEX"
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 2
-#define VERSION_PATCH 1
+#define VERSION_MINOR 3
+#define VERSION_PATCH 0
 
 struct game_state {
 	sig_atomic_t quit;
+	struct random_gen rand_src;
 	struct config config_user;
 	struct {
 		float dt, fps;

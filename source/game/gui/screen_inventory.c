@@ -85,7 +85,7 @@ static void screen_inventory_reset(struct screen* s, int width, int height) {
 		};
 	}
 
-	for(int k = 0; k < 4; k++) {
+	for(int k = 0; k < INVENTORY_SIZE_CRAFTING; k++) {
 		slots[slots_index++] = (struct inv_slot) {
 			.x = (88 + (k % 2) * 18) * 2,
 			.y = (26 + (k / 2) * 18) * 2,
@@ -101,10 +101,7 @@ static void screen_inventory_reset(struct screen* s, int width, int height) {
 }
 
 static void screen_inventory_update(struct screen* s, float dt) {
-	struct inventory* inv
-		= windowc_get_latest(gstate.windows[WINDOWC_INVENTORY]);
-
-	if(input_pressed(IB_INVENTORY) && !inventory_get_picked_item(inv, NULL)) {
+	if(input_pressed(IB_INVENTORY)) {
 		svin_rpc_send(&(struct server_rpc) {
 			.type = SRPC_WINDOW_CLOSE,
 			.payload.window_close.window = WINDOWC_INVENTORY,
@@ -262,6 +259,7 @@ static void screen_inventory_render2D(struct screen* s, int width, int height) {
 		inventory_get_slot(inv, INVENTORY_SLOT_ARMOR + 3, &boots) ? &boots :
 																	NULL);
 	gfx_write_buffers(true, false, false);
+	gfx_matrix_modelview(GLM_MAT4_IDENTITY);
 
 	// draw items
 	for(size_t k = 0; k < slots_index; k++) {
@@ -282,6 +280,8 @@ static void screen_inventory_render2D(struct screen* s, int width, int height) {
 	if(inventory_get_picked_item(inv, NULL)) {
 		icon_offset
 			+= gutil_control_icon(icon_offset, IB_GUI_CLICK, "Swap item");
+		icon_offset
+			+= gutil_control_icon(icon_offset, IB_GUI_CLICK_ALT, "Place one");
 	} else if(inventory_get_slot(inv, selection->slot, NULL)) {
 		icon_offset
 			+= gutil_control_icon(icon_offset, IB_GUI_CLICK, "Pickup item");
@@ -289,8 +289,7 @@ static void screen_inventory_render2D(struct screen* s, int width, int height) {
 			+= gutil_control_icon(icon_offset, IB_GUI_CLICK_ALT, "Split stack");
 	}
 
-	if(!inventory_get_picked_item(inv, NULL))
-		icon_offset += gutil_control_icon(icon_offset, IB_INVENTORY, "Leave");
+	icon_offset += gutil_control_icon(icon_offset, IB_INVENTORY, "Leave");
 
 	struct item_data item;
 	if(inventory_get_picked_item(inv, &item)) {

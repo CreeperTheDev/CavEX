@@ -17,6 +17,8 @@
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "../network/client_interface.h"
+#include "../network/inventory_logic.h"
 #include "../network/server_local.h"
 #include "blocks.h"
 
@@ -24,10 +26,11 @@ static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_STONE;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 1.0F, 1.0F, 1.0F);
-	return true;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 1.0F, 1.0F, 1.0F);
+	return 1;
 }
 
 static struct face_occlusion*
@@ -95,19 +98,44 @@ static bool onItemPlace(struct server_local* s, struct item_data* it,
 	double dz = s->player.z - (where->z + 0.5);
 
 	if(fabs(dx) > fabs(dz)) {
-		metadata = (dx >= 0) ? 3 : 1;
+		metadata = (dx >= 0) ? 5 : 4;
 	} else {
-		metadata = (dz >= 0) ? 0 : 2;
+		metadata = (dz >= 0) ? 3 : 2;
 	}
 
-	server_world_set_block(&s->world, where->x, where->y, where->z,
-						   (struct block_data) {
-							   .type = it->id,
-							   .metadata = metadata,
-							   .sky_light = 0,
-							   .torch_light = 0,
-						   });
+	struct block_data blk = (struct block_data) {
+		.type = it->id,
+		.metadata = metadata,
+		.sky_light = 0,
+		.torch_light = 0,
+	};
+
+	struct block_info blk_info = *where;
+	blk_info.block = &blk;
+
+	if(entity_local_player_block_collide(
+		   (vec3) {s->player.x, s->player.y, s->player.z}, &blk_info))
+		return false;
+
+	server_world_set_block(&s->world, where->x, where->y, where->z, blk);
 	return true;
+}
+
+static void onRightClick(struct server_local* s, struct item_data* it,
+						 struct block_info* where, struct block_info* on,
+						 enum side on_side) {
+	if(s->player.active_inventory == &s->player.inventory) {
+		clin_rpc_send(&(struct client_rpc) {
+			.type = CRPC_OPEN_WINDOW,
+			.payload.window_open.window = WINDOWC_FURNACE,
+			.payload.window_open.type = WINDOW_TYPE_FURNACE,
+			.payload.window_open.slot_count = FURNACE_SIZE,
+		});
+
+		struct inventory* inv = malloc(sizeof(struct inventory));
+		inventory_create(inv, &inventory_logic_furnace, s, FURNACE_SIZE);
+		s->player.active_inventory = inv;
+	}
 }
 
 struct block block_furnaceoff = {
@@ -116,6 +144,9 @@ struct block block_furnaceoff = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex1,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = NULL,
+	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
@@ -148,6 +179,9 @@ struct block block_furnaceon = {
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex2,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = NULL,
+	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,

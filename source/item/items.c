@@ -65,85 +65,85 @@ void items_init() {
 	items[278] = &item_diamond_pickaxe;
 	items[279] = &item_diamond_axe;
 	items[280] = &item_stick;
-	// bowl
-	// soup
+	items[281] = &item_bowl;
+	items[282] = &item_mushroom_stew;
 	items[283] = &item_gold_sword;
 	items[284] = &item_gold_shovel;
 	items[285] = &item_gold_pickaxe;
 	items[286] = &item_gold_axe;
-	// string
-	// feather
-	// gunpowder
+	items[287] = &item_string;
+	items[288] = &item_feather;
+	items[289] = &item_gunpowder;
 	items[290] = &item_wood_hoe;
 	items[291] = &item_stone_hoe;
 	items[292] = &item_iron_hoe;
 	items[293] = &item_diamond_hoe;
 	items[294] = &item_gold_hoe;
-	// seeds
-	// wheat
-	// bread
-	// leather helmet
-	// leather chestplate
-	// leather leggings
-	// leather boots
-	// chain helmet
-	// chain chestplate
-	// chain leggings
-	// chain boots
-	// iron helmet
-	// iron chestplate
-	// iron leggings
-	// iron boots
+	items[295] = &item_seeds;
+	items[296] = &item_wheat;
+	items[297] = &item_bread;
+	items[298] = &item_leather_helmet;
+	items[299] = &item_leather_chestplate;
+	items[300] = &item_leather_leggings;
+	items[301] = &item_leather_boots;
+	items[302] = &item_chain_helmet;
+	items[303] = &item_chain_chestplate;
+	items[304] = &item_chain_leggings;
+	items[305] = &item_chain_boots;
+	items[306] = &item_iron_helmet;
+	items[307] = &item_iron_chestplate;
+	items[308] = &item_iron_leggings;
+	items[309] = &item_iron_boots;
 	items[310] = &item_diamond_helmet;
 	items[311] = &item_diamond_chestplate;
 	items[312] = &item_diamond_leggings;
 	items[313] = &item_diamond_boots;
-	// gold helmet
-	// gold chestplate
-	// gold leggings
-	// gold boots
-	// flint
+	items[314] = &item_gold_helmet;
+	items[315] = &item_gold_chestplate;
+	items[316] = &item_gold_leggings;
+	items[317] = &item_gold_boots;
+	items[318] = &item_flint;
 	items[319] = &item_porkchop;
 	items[320] = &item_porkchop_cooked;
 	// painting
-	// golden apple
+	items[322] = &item_apple_golden;
 	// sign
-	// wood door
+	items[324] = &item_door_wood;
 	// bucket
 	// water bucket
 	// lava bucket
 	// minecart
-	// saddle
-	// iron door
-	// redstone
-	// snowball
+	items[329] = &item_saddle;
+	items[330] = &item_door_iron;
+	items[331] = &item_redstone;
+	items[332] = &item_snow_ball;
 	// boat
-	// leather
+	items[334] = &item_leather;
 	// milk bucket
-	// brick
-	// clay
-	// sugarcane
-	// paper
-	// book
-	// slimeball
+	items[336] = &item_brick;
+	items[337] = &item_clay_ball;
+	items[338] = &item_sugarcane;
+	items[339] = &item_paper;
+	items[340] = &item_book;
+	items[341] = &item_slime_ball;
 	// storage minecart
 	// furnace minecart
-	// egg
+	items[344] = &item_egg;
 	// compass
 	// fishing rod
 	// clock
-	// glowstone dust
-	// fish
-	// cooked fish
-	// colored dye
-	// bone
-	// sugar
-	// cake
-	// bed
+	items[348] = &item_glowstone_dust;
+	items[349] = &item_fish;
+	items[350] = &item_fish_cooked;
+	items[351] = &item_dye;
+	items[352] = &item_bone;
+	items[353] = &item_sugar;
+	items[354] = &item_cake;
+	items[355] = &item_bed;
 	// redstone repeater
-	// cookie
+	items[357] = &item_cookie;
 	// map
-	// shears
+	items[359] = &item_shears;
 
 	// golden record
 	// green record

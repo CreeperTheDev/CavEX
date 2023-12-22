@@ -17,16 +17,20 @@
 	along with CavEX.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "../network/client_interface.h"
+#include "../network/inventory_logic.h"
+#include "../network/server_local.h"
 #include "blocks.h"
 
 static enum block_material getMaterial(struct block_info* this) {
 	return MATERIAL_WOOD;
 }
 
-static bool getBoundingBox(struct block_info* this, bool entity,
-						   struct AABB* x) {
-	aabb_setsize(x, 1.0F, 1.0F, 1.0F);
-	return true;
+static size_t getBoundingBox(struct block_info* this, bool entity,
+							 struct AABB* x) {
+	if(x)
+		aabb_setsize(x, 1.0F, 1.0F, 1.0F);
+	return 1;
 }
 
 static struct face_occlusion*
@@ -46,12 +50,32 @@ static uint8_t getTextureIndex(struct block_info* this, enum side side) {
 	}
 }
 
+static void onRightClick(struct server_local* s, struct item_data* it,
+						 struct block_info* where, struct block_info* on,
+						 enum side on_side) {
+	if(s->player.active_inventory == &s->player.inventory) {
+		clin_rpc_send(&(struct client_rpc) {
+			.type = CRPC_OPEN_WINDOW,
+			.payload.window_open.window = WINDOWC_CRAFTING,
+			.payload.window_open.type = WINDOW_TYPE_WORKBENCH,
+			.payload.window_open.slot_count = CRAFTING_SIZE,
+		});
+
+		struct inventory* inv = malloc(sizeof(struct inventory));
+		inventory_create(inv, &inventory_logic_crafting, s, CRAFTING_SIZE);
+		s->player.active_inventory = inv;
+	}
+}
+
 struct block block_workbench = {
 	.name = "Workbench",
 	.getSideMask = getSideMask,
 	.getBoundingBox = getBoundingBox,
 	.getMaterial = getMaterial,
 	.getTextureIndex = getTextureIndex,
+	.getDroppedItem = block_drop_default,
+	.onRandomTick = NULL,
+	.onRightClick = onRightClick,
 	.transparent = false,
 	.renderBlock = render_block_full,
 	.renderBlockAlways = NULL,
